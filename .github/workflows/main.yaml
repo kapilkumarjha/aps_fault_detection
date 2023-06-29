@@ -1,39 +1,40 @@
-name: workflow
-
+##overall this workflow automates the process of building a Docker image, pushing it to ECR, & deploying it self-hosted environment for continuous deployment.
+name: workflow 
+#The workflow is triggered whenever there is a push to the main branch of the repository.
 on:
   push:
     branches:
       - main
-
+##Permissions are set to allow writing ID tokens and reading contents.
 permissions:
   id-token: write
   contents: read
 
-
+#The workflow consists of two jobs: "build-and-push-ecr-image" and "Continuous-Deployment
 jobs:
- build-and-push-ecr-image:
+ build-and-push-ecr-image: #The "build-and-push-ecr-image" job runs on an Ubuntu environment.
   name: Continuous Delivery
   runs-on: ubuntu-latest
   steps:
-   - name: Checkout Code
+   - name: Checkout Code #This step fetches the source code from the repository.
      uses: actions/checkout@v3
-   - name: Install Utilities
+   - name: Install Utilities #This step installs some necessary utilities like jq and unzip
      run: |
       sudo apt-get update
       sudo apt-get install -y jq unzip
 
-   - name: Configure AWS credentials
+   - name: Configure AWS credentials #This step configures the AWS credentials using the secrets provided.
      uses: aws-actions/configure-aws-credentials@v1
      with:
       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       aws-region: ${{ secrets.AWS_REGION }}
 
-   - name: Login to Amazon ECR
+   - name: Login to Amazon ECR #This step authenticates the Docker client to the ECR registry.
      id: login-ecr
      uses: aws-actions/amazon-ecr-login@v1
-    
-   - name: Build, tag, and push image to Amazon ECR
+    #This step builds a Docker container, tags it with the latest version, and pushes it to the specified ECR repository. The output of this step is the image URL.
+   - name: Build, tag, and push image to Amazon ECR 
      id: build-image
      env:
       ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -47,7 +48,7 @@ jobs:
        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" 
 
- Continuous-Deployment:
+ Continuous-Deployment: #completion of the "build-and-push-ecr-image" job and runs on a self-hosted environment.
   needs: build-and-push-ecr-image
   runs-on: self-hosted
   steps:
@@ -68,13 +69,13 @@ jobs:
     id: login-ecr
     uses: aws-actions/amazon-ecr-login@v1
     
-  - name: Pull docker image
+  - name: Pull docker image #This step pulls the latest Docker image from ECR using the credentials.
     run: |
       docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
-  - name: Run Docker Image to serve users
+  - name: Run Docker Image to serve users #This step runs the Docker image and sets environment variables for the application.
     run: |
       export IMAGE_NAME="${{secrets.AWS_ECR_LOGIN_URI}}"/"${{ secrets.ECR_REPOSITORY_NAME }}":latest AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }} BUCKET_NAME=${{ secrets.BUCKET_NAME }} "MONGO_DB_URL=${{ secrets.MONGO_DB_URL }}" && docker compose up -d
-  - name: Docker System Prune to Remove Old Images
+  - name: Docker System Prune to Remove Old Images #This step removes any unused Docker images from the system.
     run: |
       docker system prune -f
 

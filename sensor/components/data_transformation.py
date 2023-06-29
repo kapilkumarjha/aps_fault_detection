@@ -1,3 +1,5 @@
+#Overall, the DataTransformation class handles the transformation of data by performing various preprocessing steps such as imputation, scaling, resampling, and encoding.
+
 from sensor.entity import artifact_entity,config_entity
 from sensor.exception import SensorException
 from sensor.logger import logging

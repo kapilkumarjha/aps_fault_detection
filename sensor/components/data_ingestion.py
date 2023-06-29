@@ -1,4 +1,4 @@
-
+#Overall, the DataIngestion class encapsulates the logic for ingesting data, saving it to the feature store, splitting it into train and test sets, and creating a data ingestion artifact with the file paths.
 from sensor import utils
 from sensor.entity import config_entity
 from sensor.entity import artifact_entity
@@ -37,7 +37,7 @@ class DataIngestion:
             feature_store_dir = os.path.dirname(self.data_ingestion_config.feature_store_file_path)
             os.makedirs(feature_store_dir,exist_ok=True)
             logging.info("Save df to feature store folder")
-            #Save df to feature store folder
+            #Save df to feature store folder as a CSV file
             df.to_csv(path_or_buf=self.data_ingestion_config.feature_store_file_path,index=False,header=True)
 
 
@@ -51,11 +51,12 @@ class DataIngestion:
             os.makedirs(dataset_dir,exist_ok=True)
 
             logging.info("Save df to feature store folder")
-            #Save df to feature store folder
+            #Save df to feature store folder to separate CSV files in the dataset directory
             train_df.to_csv(path_or_buf=self.data_ingestion_config.train_file_path,index=False,header=True)
             test_df.to_csv(path_or_buf=self.data_ingestion_config.test_file_path,index=False,header=True)
             
             #Prepare artifact
+            # it creates an instance of artifact_entity.DataIngestionArtifact with the paths to the feature store file, train file, and test file, and returns it.
 
             data_ingestion_artifact = artifact_entity.DataIngestionArtifact(
                 feature_store_file_path=self.data_ingestion_config.feature_store_file_path,
